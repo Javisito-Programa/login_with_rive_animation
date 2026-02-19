@@ -12,10 +12,38 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscureText = true;
   // Variables para controlar la animación
   StateMachineController? _controller;
+  //SMI se usa para State Machine Input, es decir, para controlar los inputs de la máquina de estados en Rive
+  //Que es input? Es una variable que la máquina de estados puede leer para cambiar su comportamiento. Por ejemplo, en este caso, el oso tiene inputs para saber si el usuario está escribiendo en el campo de email, si está escribiendo en el campo de password, etc. Entonces, dependiendo de esos inputs, el oso cambia su animación (mira el campo, se tapa los ojos, etc.)
   SMIBool? _isChecking; // Agregamos el input para mirar el campo de email
   SMIBool? _isHandsUp; // Agregamos el input para manos arriba
   SMITrigger? _isSuccess; // Agregamos el trigger para éxito
   SMITrigger? _trigFail; // Agregamos el trigger para fallo
+
+  //1.1) Crear varables para FocusNode
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+
+  //1.2) Agregar listeners a los FocusNode para detectar cuando el usuario enfoca o desenfoca los campos de texto
+  @override
+  void initState() {
+    // El initState se ejecuta cuando el widget se crea por primera vez, es el lugar ideal para agregar los listeners a los FocusNode
+    super
+        .initState(); // Agregamos listeners a los FocusNode para detectar cuando el usuario enfoca o desenfoca los campos de texto
+    _emailFocusNode.addListener(() {
+      // Manos arriba cuando el usuario enfoca el campo de email, manos abajo cuando desenfoca
+      //Que es focusNode.hasFocus? Es una propiedad que nos dice si el campo de texto está enfocado o no. Entonces, si el usuario enfoca el campo de email, hasFocus será true, y si desenfoca, hasFocus será false. Entonces, dependiendo de eso, podemos cambiar el estado del oso.
+      if (_emailFocusNode.hasFocus) {
+        // Si el usuario enfoca el campo de email, el oso mira el campo
+        if (_isHandsUp != null) {
+          _isHandsUp!.change(false); // Bajamos las manos
+        }
+      }
+    });
+    _passwordFocusNode.addListener(() {
+      // Manos arriba cuando el usuario enfoca el campo de password, manos abajo cuando desenfoca
+      _isHandsUp?.change(_passwordFocusNode.hasFocus);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,19 +89,24 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 10),
               //Campo de texto para email
               TextField(
+                //1.3) Asignar los FocusNode a los campos de texto correspondientes
+                focusNode:
+                    _emailFocusNode, // Asignamos el FocusNode al campo de email
                 onChanged: (value) {
                   // Cuando el usuario escribe, el oso mira el campo
                   if (_isHandsUp != null) {
-                    _isHandsUp!.change(false); // Bajamos las manos
+                    //_isHandsUp!.change(false); // Bajamos las manos
                   }
                   // Si el campo no está vacío, el oso mira, si está vacío, el oso baja la mirada
                   if (_isChecking == null) return;
                   // Si el campo tiene texto, el oso mira, si está vacío, el oso baja la mirada
                   _isChecking!.change(true);
                 },
+                // El teclado de email es más adecuado para este campo, ya que muestra el símbolo @ y el .com, lo que facilita la escritura del email
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  hintText: 'Email',
+                  hintText:
+                      'Email', // El hintText es el texto que aparece dentro del campo de texto cuando está vacío, es una pista para el usuario sobre qué debe escribir en ese campo
                   prefixIcon: const Icon(Icons.email),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -82,11 +115,14 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 10),
               TextField(
+                //1.3) Asignar los FocusNode a los campos de texto correspondientes
+                focusNode:
+                    _passwordFocusNode, // Asignamos el FocusNode al campo de password
                 onChanged: (value) {
                   // Cuando el usuario escribe, el oso mira el campo
                   if (_isChecking != null) {
                     //No quiero modo chismoso, así que el oso no mira el campo de password, solo baja las manos
-                    _isChecking!.change(false); // Bajamos las manos
+                    //_isChecking!.change(false); // Bajamos las manos
                   }
                   //Si HandsUp es null, salimos para evitar errores
                   if (_isHandsUp == null) return;
@@ -125,5 +161,14 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  //1.4) Limpiar los FocusNode en el dispose para evitar fugas de memoria
+  @override
+  void dispose() {
+    // Limpiamos los FocusNode para evitar fugas de memoria al salir de la pantalla
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    super.dispose();
   }
 }
